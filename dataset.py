@@ -1,8 +1,18 @@
 import random as rd
 import math as mth
-import pandas as pd
-data = []
+import pandas as pd  
 
+
+
+data = []
+colonnes = [
+    "nombre_cotes",
+    "cote_a",
+    "cote_b",
+    "perimetre",
+    "surface",
+    "forme_cible"
+]
 #======================================
 #CIRCLE
 #======================================
@@ -42,4 +52,23 @@ for i in range(500):
     surface = longueur * largeur
     data.append((4, longueur, largeur, perimetre, surface, "rectangle"))
 
-print(len(data))    
+print(len(data))
+df = pd.DataFrame(data, columns=colonnes)
+print(df.head())
+
+def randomize_dataframe(df):
+    """
+    Randomizes the order of the rows in a DataFrame.
+
+    Parameters:
+        df (pd.DataFrame): The input DataFrame to be randomized.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with the rows in random order.
+    """
+    return df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+randomized_df = randomize_dataframe(df)
+print(randomized_df.head())
+randomized_df.to_csv("dataset.csv", index=False)
+print(randomized_df.shape)
