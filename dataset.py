@@ -70,5 +70,7 @@ def randomize_dataframe(df):
 
 randomized_df = randomize_dataframe(df)
 print(randomized_df.head())
-randomized_df.to_csv("dataset.csv", index=False)
+"""
+randomized_df.to_csv("dataset.csv", index=False)"""
 print(randomized_df.shape)
+print(randomized_df["forme_cible"].value_counts())
