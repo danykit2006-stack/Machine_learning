@@ -1,6 +1,7 @@
 import pandas as pd
 import joblib
-
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, classification_report
@@ -85,3 +86,14 @@ print("Précision :", precision)
 
 print("\nRapport de classification :")
 print(classification_report(y_test, y_pred))
+
+matrice = confusion_matrix(y_test, y_pred)
+
+affichage = ConfusionMatrixDisplay(
+    confusion_matrix=matrice,
+    display_labels=modele.classes_
+)
+
+affichage.plot()
+plt.title("Matrice de confusion")
+plt.show()
