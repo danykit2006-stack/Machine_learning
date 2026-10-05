@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f4f7fb">
+    <title>GéoForme — reconnaissance géométrique</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="GéoForme, accueil">
+                <span class="brand-mark" aria-hidden="true">G</span>
+                <span>Géo<span class="brand-light">Forme</span></span>
+            </a>
+            <span class="topbar-note"><span class="status-dot"></span> Reconnaissance géométrique</span>
+        </header>
+
+        <section class="intro">
+            <p class="eyebrow">MODÈLE DE CLASSIFICATION · VISUALISATION 3D</p>
+            <h1>Une forme, <span>en trois dimensions.</span></h1>
+            <p class="intro-copy">Saisissez les mesures de votre figure. Le modèle l’identifie et la transforme en aperçu 3D.</p>
+        </section>
+
+        <section class="workspace" aria-label="Outil de reconnaissance de figures">
+            <form class="card form-card" id="formulaire">
+                <div class="card-heading">
+                    <span class="step-number">01</span>
+                    <div>
+                        <h2>Les mesures</h2>
+                        <p>Renseignez les caractéristiques de la figure.</p>
+                    </div>
+                </div>
+
+                <div class="fields">
+                    <label class="field field-wide" for="nombre_cotes">
+                        <span>Nombre de côtés <span class="field-hint">0 pour un cercle</span></span>
+                        <input type="number" id="nombre_cotes" name="nombre_cotes" min="0" step="1" value="4" required>
+                    </label>
+                    <label class="field" for="cote_a">
+                        <span>Côté A <span class="unit">unités</span></span>
+                        <input type="number" id="cote_a" name="cote_a" min="0.01" step="any" value="8" required>
+                    </label>
+                    <label class="field" for="cote_b">
+                        <span>Côté B <span class="unit">unités</span></span>
+                        <input type="number" id="cote_b" name="cote_b" min="0.01" step="any" value="8" required>
+                    </label>
+                    <label class="field" for="perimetre">
+                        <span>Périmètre <span class="unit">unités</span></span>
+                        <input type="number" id="perimetre" name="perimetre" min="0.01" step="any" value="32" required>
+                    </label>
+                    <label class="field" for="surface">
+                        <span>Surface <span class="unit">unités²</span></span>
+                        <input type="number" id="surface" name="surface" min="0.01" step="any" value="64" required>
+                    </label>
+                </div>
+
+                <p class="form-error" id="erreur" role="alert" hidden></p>
+                <button class="submit-button" id="bouton" type="submit">
+                    <span>Identifier et visualiser</span>
+                    <span class="button-arrow" aria-hidden="true">→</span>
+                </button>
+                <p class="form-footnote">La profondeur du relief est fixe pour cet aperçu 3D.</p>
+            </form>
+
+            <section class="card preview-card" aria-labelledby="preview-title">
+                <div class="preview-heading">
+                    <div class="card-heading">
+                        <span class="step-number">02</span>
+                        <div>
+                            <h2 id="preview-title">Votre figure</h2>
+                            <p>La forme prédite apparaît ici.</p>
+                        </div>
+                    </div>
+                    <span class="preview-tag" id="statut">EN ATTENTE</span>
+                </div>
+
+                <div class="canvas" id="canvas">
+                    <div class="canvas-grid" aria-hidden="true"></div>
+                    <svg id="figure-3d" viewBox="0 0 520 380" role="img" aria-label="Aperçu 3D de la figure prédite">
+                        <g class="axis-lines" aria-hidden="true">
+                            <path d="M110 310 H425 M145 333 L315 333 M425 310 L455 292" />
+                        </g>
+                        <g id="dessin"></g>
+                        <g id="placeholder">
+                            <circle cx="260" cy="177" r="54" fill="#f3f7fc" />
+                            <path d="M230 187 L260 166 L290 187 L260 208 Z" fill="#dce8f5" />
+                            <path d="M230 187 L260 208 L260 222 L230 201 Z" fill="#c3d6eb" />
+                            <path d="M260 208 L290 187 L290 201 L260 222 Z" fill="#a9c5e1" />
+                            <text x="260" y="272" text-anchor="middle">Votre aperçu 3D apparaîtra ici</text>
+                        </g>
+                    </svg>
+                    <span class="canvas-label">APERÇU ISOMÉTRIQUE</span>
+                </div>
+
+                <div class="prediction-result" id="resultat" aria-live="polite">
+                    <span class="result-icon" aria-hidden="true">✳</span>
+                    <div>
+                        <span class="result-caption">FORME RECONNUE</span>
+                        <p id="forme">En attente de vos mesures</p>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <footer class="footer">
+            <span>GéoForme <span class="footer-separator">/</span> Projet de classification</span>
+            <span>Les dimensions sont représentées à titre illustratif.</span>
+        </footer>
+    </main>
+
+    <script>
+        const formulaire = document.getElementById("formulaire");
+        const bouton = document.getElementById("bouton");
+        const erreur = document.getElementById("erreur");
+        const statut = document.getElementById("statut");
+        const groupeDessin = document.getElementById("dessin");
+        const placeholder = document.getElementById("placeholder");
+        const nomFormes = {
+            carre: "Carré",
+            cercle: "Cercle",
+            rectangle: "Rectangle",
+            triangle: "Triangle"
+        };
+        const namespaceSvg = "http://www.w3.org/2000/svg";
+
+        function creerPolygone(points, classe) {
+            const polygone = document.createElementNS(namespaceSvg, "polygon");
+            polygone.setAttribute("points", points.map(point => point.join(",")).join(" "));
+            polygone.setAttribute("class", classe);
+            return polygone;
+        }
+
+        function dessinerFigure(geometrie) {
+            groupeDessin.replaceChildren();
+            const points = geometrie.points;
+            const xs = points.map(point => point[0]);
+            const ys = points.map(point => point[1]);
+            const largeur = Math.max(...xs) - Math.min(...xs);
+            const hauteur = Math.max(...ys) - Math.min(...ys);
+            const echelle = 146 / Math.max(largeur, hauteur);
+            const centreX = 260;
+            const centreY = 178;
+            const decalageX = 39 * geometrie.profondeur;
+            const decalageY = 57 * geometrie.profondeur;
+            const faceSuperieure = points.map(([x, y]) => [
+                centreX + x * echelle,
+                centreY - y * echelle
+            ]);
+            const facesLaterales = points.map((point, index) => {
+                const suivant = points[(index + 1) % points.length];
+                const face = [
+                    faceSuperieure[index],
+                    faceSuperieure[(index + 1) % points.length],
+                    [faceSuperieure[(index + 1) % points.length][0] + decalageX,
+                        faceSuperieure[(index + 1) % points.length][1] + decalageY],
+                    [faceSuperieure[index][0] + decalageX,
+                        faceSuperieure[index][1] + decalageY]
+                ];
+                return {face, profondeur: (face[0][1] + face[2][1]) / 2};
+            }).sort((a, b) => a.profondeur - b.profondeur);
+
+            facesLaterales.forEach(({face}, index) => {
+                groupeDessin.appendChild(creerPolygone(face, `side-face side-${index % 3}`));
+            });
+            groupeDessin.appendChild(creerPolygone(faceSuperieure, "top-face"));
+            placeholder.setAttribute("visibility", "hidden");
+        }
+
+        formulaire.addEventListener("submit", async event => {
+            event.preventDefault();
+            erreur.hidden = true;
+            bouton.disabled = true;
+            bouton.querySelector("span:first-child").textContent = "Analyse en cours…";
+            statut.textContent = "ANALYSE";
+
+            const donnees = Object.fromEntries(
+                ["nombre_cotes", "cote_a", "cote_b", "perimetre", "surface"]
+                    .map(nom => [nom, Number(document.getElementById(nom).value)])
+            );
+
+            try {
+                const reponse = await fetch("/predict", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(donnees)
+                });
+                const resultat = await reponse.json();
+                if (!reponse.ok) {
+                    throw new Error(resultat.erreur || "La prédiction n’a pas pu être effectuée.");
+                }
+
+                dessinerFigure(resultat.geometrie);
+                document.getElementById("forme").textContent =
+                    nomFormes[resultat.forme] || resultat.forme;
+                statut.textContent = "PRÉDICTION TERMINÉE";
+            } catch (exception) {
+                erreur.textContent = exception.message || "Impossible de contacter le serveur.";
+                erreur.hidden = false;
+                statut.textContent = "ERREUR";
+            } finally {
+                bouton.disabled = false;
+                bouton.querySelector("span:first-child").textContent = "Identifier et visualiser";
+            }
+        });
+    </script>
+</body>
+</html>
