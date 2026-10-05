@@ -7,11 +7,13 @@ import pandas as pd
 
 
 BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = Flask(
     __name__,
-    template_folder=str(BASE_DIR),
-    static_folder=str(BASE_DIR / "static"),
+    template_folder=str(FRONTEND_DIR),
+    static_folder=str(FRONTEND_DIR),
+    static_url_path="",
 )
 
 modele = joblib.load(BASE_DIR / "modele_figures.pkl")
