@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, classification_report
 # 1. CHARGER LE DATASET
 # =========================
 
-df = pd.read_csv("dataset_figures.csv")
+df = pd.read_csv("dataset.csv")
 
 
 # =========================
